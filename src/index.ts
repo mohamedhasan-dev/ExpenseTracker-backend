@@ -10,6 +10,12 @@ const sql = neon(process.env.DATABASE_URL as string);
 export const db = drizzle({client: sql});
 const PORT = process.env.PORT || 3000;
 
+const jwt = process.env.JWT_SECRET;
+
+if (!jwt) {
+  throw new Error("JWT_SECRET is not defined in the environment variables.");
+}
+
 app.use(express.json())
 app.use('/',router)
 app.use('/signup',router)
