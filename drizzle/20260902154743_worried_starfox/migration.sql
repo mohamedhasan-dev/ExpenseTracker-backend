@@ -1,0 +1,1 @@
+ALTER TABLE "transactions" ALTER COLUMN "amount" SET DATA TYPE numeric(10,2) USING "amount"::numeric(10,2);

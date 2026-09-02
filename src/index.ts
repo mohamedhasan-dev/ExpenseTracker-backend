@@ -1,9 +1,11 @@
 import "dotenv/config";
 import express, { type Express } from "express";
 import { drizzle } from "drizzle-orm/neon-http";
-import { users } from "./db/schema";
 import { neon } from "@neondatabase/serverless";
 import router from "./routes/auth.js";
+
+//routers
+import transactionsRouter from "./routes/transactions";
 import usersRouter from "./routes/users";
 
 const app: Express = express();
@@ -20,6 +22,8 @@ app.use(express.json())
 app.use('/',router)
 app.use('/signup',router)
 app.use('/users',usersRouter)
+app.use('/transactions', transactionsRouter);
+
 
 app.get("/", (_, res) => {
   res.send("Hello World!");

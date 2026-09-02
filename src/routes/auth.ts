@@ -60,7 +60,7 @@ router.post("/", async (req, res) => {
       },
     );
 
-    return res.status(200).json({ token: jwtToken });
+    return res.status(201).json({ token: jwtToken });
   } catch (error) {
     console.log("Something Went Wrong", error);
     return res.status(500).json({ message: "Internal Server Error" });
