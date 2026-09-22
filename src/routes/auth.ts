@@ -10,6 +10,7 @@ const router = Router();
 
 //signup route
 router.post("/", async (req, res) => {
+  console.log("Signup Route Accessed");
   try {
     const { name, email, password } = req.body;
     if (

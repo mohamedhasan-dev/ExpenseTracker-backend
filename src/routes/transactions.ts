@@ -13,6 +13,7 @@ transactionsRouter.get(
   "/",
   authMiddleware,
   async (req: AuthenticatedRequest, res) => {
+    console.log("Get Transactions Route Accessed");
     try {
       if (!req.user?.userId) {
         return res.status(500).json({ message: "Internal Server Error" });
@@ -35,6 +36,7 @@ transactionsRouter.post(
   "/",
   authMiddleware,
   async (req: AuthenticatedRequest, res) => {
+    console.log("Create Transaction Route Accessed");
     try {
       if (!req.user?.userId) {
         return res.status(500).json({ message: "Internal Server Error" });
