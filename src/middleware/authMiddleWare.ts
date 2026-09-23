@@ -30,7 +30,6 @@ const authMiddleware = (
       token,
       process.env.JWT_SECRET as string,
     ) as jwtType;
-    console.log(decoded);
     req.user = decoded;
 
     next();

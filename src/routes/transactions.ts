@@ -16,7 +16,7 @@ transactionsRouter.get(
     console.log("Get Transactions Route Accessed");
     try {
       if (!req.user?.userId) {
-        return res.status(500).json({ message: "Internal Server Error" });
+        return res.status(401).json({ message: "Unauthorized" });
       }
       const Transactions = await db
         .select()
@@ -39,24 +39,10 @@ transactionsRouter.post(
     console.log("Create Transaction Route Accessed");
     try {
       if (!req.user?.userId) {
-        return res.status(500).json({ message: "Internal Server Error" });
+        return res.status(401).json({ message: "Unauthorized" });
       }
       const { amount, description, type, date } = req.body;
       const userId = req.user.userId;
-      if (
-        typeof amount !== "number" ||
-        amount <= 0 ||
-        typeof description !== "string" ||
-        description.trim() === "" ||
-        typeof type !== "string" ||
-        type.trim() === "" ||
-        typeof date !== "string" ||
-        date.trim() === ""
-      ) {
-        return res.status(400).json({
-          message: "Invalid input",
-        });
-      }
       if (
         typeof amount !== "number" ||
         amount <= 0 ||
