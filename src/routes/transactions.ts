@@ -62,10 +62,10 @@ transactionsRouter.post(
         .insert(transactions)
         .values({
           userId,
-          amount: amount.toString(),
+          amount,
           description,
-          type:type.toLowerCase(),
-          date,
+          type: type.toLowerCase(),
+          date: new Date(date),
         })
         .returning();
       res.status(201).json(newTransaction);
@@ -75,6 +75,5 @@ transactionsRouter.post(
     }
   },
 );
-
 
 export default transactionsRouter;
