@@ -7,6 +7,8 @@ import router from "./routes/auth.js";
 //routers
 import transactionsRouter from "./routes/transactions";
 import usersRouter from "./routes/users";
+import categoriesRouter from "./routes/category.js";
+
 
 const app: Express = express();
 const sql = neon(process.env.DATABASE_URL as string);
@@ -23,6 +25,7 @@ app.use('/',router)
 app.use('/signup',router)
 app.use('/users',usersRouter)
 app.use('/transactions', transactionsRouter);
+app.use('/categories',categoriesRouter)
 
 
 app.get("/", (_, res) => {
