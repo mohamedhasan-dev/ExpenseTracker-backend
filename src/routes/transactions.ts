@@ -4,7 +4,7 @@ import { transactions } from "../db/schema";
 import authMiddleware, {
   AuthenticatedRequest,
 } from "../middleware/authMiddleWare";
-import { eq } from "drizzle-orm";
+import { eq, or, isNull, and } from "drizzle-orm";
 
 const transactionsRouter = Router();
 
@@ -36,44 +36,40 @@ transactionsRouter.post(
   "/",
   authMiddleware,
   async (req: AuthenticatedRequest, res) => {
-    console.log("Create Transaction Route Accessed");
     try {
-      if (!req.user?.userId) {
-        return res.status(401).json({ message: "Unauthorized" });
-      }
-      const { amount, description, type, date } = req.body;
-      const userId = req.user.userId;
-      if (
-        typeof amount !== "number" ||
-        amount <= 0 ||
-        typeof description !== "string" ||
-        description.trim() === "" ||
-        typeof type !== "string" ||
-        type.trim() === "" ||
-        typeof date !== "string" ||
-        date.trim() === ""
-      ) {
-        return res.status(400).json({
-          message: "Invalid input",
-        });
+      const userId = req.user?.userId;
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+      // Expecting categoryId (UUID) from the frontend
+      const { amount, description, type, date, categoryId, paymentMethod } =
+        req.body;
+
+      // Basic type validation...
+      if (!categoryId || typeof categoryId !== "string") {
+        return res.status(400).json({ message: "Invalid category" });
       }
 
+      // Single, lightning-fast database insertion
       const [newTransaction] = await db
         .insert(transactions)
         .values({
           userId,
-          amount,
+          categoryId, // Maps directly to the foreign key
+          paymentMethod,
+          amount: amount.toString(),
           description,
-          type: type.toLowerCase(),
+          type,
           date: new Date(date),
         })
         .returning();
+
       res.status(201).json(newTransaction);
     } catch (error) {
+      // If the frontend sends a UUID that doesn't exist in the categories table,
+      // Postgres will throw a Foreign Key Violation error here.
       console.error(error);
       res.status(500).json({ message: "Error creating transaction" });
     }
   },
 );
-
 export default transactionsRouter;
