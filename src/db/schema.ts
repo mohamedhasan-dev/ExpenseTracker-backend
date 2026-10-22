@@ -2,6 +2,7 @@ import {
   decimal,
   pgTable,
   timestamp,
+  unique,
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
@@ -27,10 +28,22 @@ export const transactions = pgTable("transactions", {
   type: varchar("type", { length: 255 }).notNull(),
   date: timestamp("date").notNull(),
 });
-export const categories = pgTable("categories", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  userId: uuid("user_id").references(() => users.id), // Null for global app defaults; populated for user-created ones
-  name: varchar("name", { length: 50 }).notNull(),
-  icon: varchar("icon", { length: 50 }).notNull(),
-  type: varchar("type", { length: 50 }).notNull(), // 'Expense' or 'Income'
-});
+export const categories = pgTable(
+  "categories",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id").references(() => users.id), // Null for global app defaults; populated for user-created ones
+    name: varchar("name", { length: 50 }).notNull(),
+    icon: varchar("icon", { length: 50 }).notNull(),
+    type: varchar("type", { length: 50 }).notNull(), // 'Expense' or 'Income'
+  },
+  (t) => [
+    // A name can appear once per type for each owner. NULLS NOT DISTINCT makes
+    // the global defaults (user_id NULL) count as one owner too, so "Other"
+    // can exist once as Expense and once as Income, and different users can
+    // each have their own "Coffee".
+    unique("categories_user_name_type_key")
+      .on(t.userId, t.name, t.type)
+      .nullsNotDistinct(),
+  ],
+);

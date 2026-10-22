@@ -34,7 +34,11 @@ async function runSeed() {
   console.log("🌱 Seeding default categories...");
 
   try {
-    await db.insert(categories).values(DEFAULT_CATEGORIES);
+    // Safe to re-run: defaults that already exist are skipped
+    await db
+      .insert(categories)
+      .values(DEFAULT_CATEGORIES)
+      .onConflictDoNothing();
     console.log("✅ Defaults seeded successfully!");
   } catch (error) {
     console.error("❌ Error seeding database:", error);

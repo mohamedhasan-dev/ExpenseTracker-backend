@@ -1,0 +1,2 @@
+ALTER TABLE "categories" DROP CONSTRAINT IF EXISTS "categories_name_key";--> statement-breakpoint
+ALTER TABLE "categories" ADD CONSTRAINT "categories_user_name_type_key" UNIQUE NULLS NOT DISTINCT("user_id","name","type");

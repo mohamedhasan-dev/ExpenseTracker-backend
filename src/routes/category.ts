@@ -8,6 +8,12 @@ import { and, eq, isNull, or } from "drizzle-orm";
 
 const categoriesRouter = Router();
 
+// Postgres unique_violation (also wrapped by Drizzle as error.cause)
+const isUniqueViolation = (error: unknown) => {
+  const e = error as { code?: string; cause?: { code?: string } } | undefined;
+  return e?.code === "23505" || e?.cause?.code === "23505";
+};
+
 //FETCH CATEGORIES
 categoriesRouter.get(
   "/",
@@ -77,13 +83,14 @@ categoriesRouter.post(
 
       const formattedName = name.trim();
 
-      // 2. Prevent duplicate categories (both global defaults and user-specific)
+      // 2. Prevent duplicate categories of the same type (both global defaults and user-specific)
       const existingCategory = await db
         .select()
         .from(categories)
         .where(
           and(
             eq(categories.name, formattedName),
+            eq(categories.type, type),
             or(
               isNull(categories.userId), // Checks if it's a global default
               eq(categories.userId, userId), // Checks if the user already created it
@@ -94,7 +101,7 @@ categoriesRouter.post(
 
       if (existingCategory.length > 0) {
         return res.status(409).json({
-          message: `The category "${formattedName}" already exists.`,
+          message: `The ${type.toLowerCase()} category "${formattedName}" already exists.`,
         });
       }
 
@@ -111,6 +118,12 @@ categoriesRouter.post(
 
       return res.status(201).json(newCategory);
     } catch (error) {
+      // Two identical requests at the same time: the DB constraint catches the second one
+      if (isUniqueViolation(error)) {
+        return res
+          .status(409)
+          .json({ message: "This category already exists." });
+      }
       console.error("Error creating category:", error);
       return res.status(500).json({
         message: "Internal server error while creating category",

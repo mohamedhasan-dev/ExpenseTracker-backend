@@ -4,24 +4,89 @@ import { categories, transactions } from "../db/schema";
 import authMiddleware, {
   AuthenticatedRequest,
 } from "../middleware/authMiddleWare";
-import { eq, or, isNull, and } from "drizzle-orm";
+import { eq, or, isNull, and, gte, lt, desc, type SQL } from "drizzle-orm";
 
 const transactionsRouter = Router();
 
-// Get all transactions
+// Accepts ISO 8601 only (e.g. 2026-10-01 or 2026-10-01T00:00:00.000Z) so dates are never ambiguous
+const ISO_DATE =
+  /^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}(:\d{2}(\.\d{1,3})?)?(Z|[+-]\d{2}:?\d{2})?)?$/;
+const parseIsoQuery = (value: unknown): Date | null => {
+  if (typeof value !== "string" || !ISO_DATE.test(value)) return null;
+  const time = Date.parse(value);
+  return Number.isNaN(time) ? null : new Date(time);
+};
+
+// Get the user's transactions, newest first
+// Optional query params:
+//   from  - ISO date/time, inclusive  (e.g. start of the month in the user's timezone)
+//   to    - ISO date/time, exclusive  (e.g. start of next month)
+//   limit - 1..100
 transactionsRouter.get(
   "/",
   authMiddleware,
   async (req: AuthenticatedRequest, res) => {
     console.log("Get Transactions Route Accessed");
     try {
-      if (!req.user?.userId) {
+      const userId = req.user?.userId;
+      if (!userId) {
         return res.status(401).json({ message: "Unauthorized" });
       }
-      const Transactions = await db
-        .select()
+
+      const { from, to, limit } = req.query;
+      const conditions: SQL[] = [eq(transactions.userId, userId)];
+
+      if (from !== undefined) {
+        const fromDate = parseIsoQuery(from);
+        if (!fromDate) {
+          return res
+            .status(400)
+            .json({ message: "Invalid 'from'. Expected an ISO date." });
+        }
+        conditions.push(gte(transactions.date, fromDate));
+      }
+
+      if (to !== undefined) {
+        const toDate = parseIsoQuery(to);
+        if (!toDate) {
+          return res
+            .status(400)
+            .json({ message: "Invalid 'to'. Expected an ISO date." });
+        }
+        conditions.push(lt(transactions.date, toDate));
+      }
+
+      let take: number | undefined;
+      if (limit !== undefined) {
+        take = Number(limit);
+        if (!Number.isInteger(take) || take < 1 || take > 100) {
+          return res
+            .status(400)
+            .json({ message: "Invalid 'limit'. Must be a whole number from 1 to 100." });
+        }
+      }
+
+      const query = db
+        .select({
+          id: transactions.id,
+          amount: transactions.amount,
+          description: transactions.description,
+          type: transactions.type,
+          date: transactions.date,
+          paymentMethod: transactions.paymentMethod,
+          category: {
+            id: categories.id,
+            name: categories.name,
+            icon: categories.icon,
+          },
+        })
         .from(transactions)
-        .where(eq(transactions.userId, req.user.userId));
+        .innerJoin(categories, eq(transactions.categoryId, categories.id))
+        .where(and(...conditions))
+        .orderBy(desc(transactions.date), desc(transactions.id))
+        .$dynamic();
+
+      const Transactions = await (take ? query.limit(take) : query);
       res.status(200).json(Transactions);
     } catch (error) {
       console.error(error);
