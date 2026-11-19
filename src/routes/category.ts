@@ -55,6 +55,8 @@ categoriesRouter.post(
   "/",
   authMiddleware,
   async (req: AuthenticatedRequest, res) => {
+    console.log("Add categories Route accessed");
+    
     try {
       const userId = req.user?.userId;
 

@@ -262,12 +262,13 @@ transactionsRouter.get(
   },
 );
 
-// Create a new transaction
+// ADD transaction
 
 transactionsRouter.post(
   "/",
   authMiddleware,
   async (req: AuthenticatedRequest, res) => {
+    console.log("Add Transactions Route Accessed");
     try {
       const userId = req.user?.userId;
       if (!userId) return res.status(401).json({ message: "Unauthorized" });
